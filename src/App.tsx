@@ -4,7 +4,7 @@ import {
   Activity, ArrowDownToLine, ArrowUpRight, BookOpen, CalendarDays, Check, ChevronDown,
   CircleHelp, ClipboardCheck, Database, FileSpreadsheet, Filter, Gauge, LayoutDashboard,
   LogOut, Menu, Plus, RefreshCw, Search, Settings, ShieldCheck, Sparkles, Table2, Users,
-  X, Pencil, Trash2, Save, LockKeyhole, Clock3, CircleAlert, CheckCircle2, Layers3
+  X, Pencil, Trash2, Save, LockKeyhole, Clock3, CircleAlert, CheckCircle2, Layers3, UserPlus, UserMinus
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import QuestionBank from './QuestionBank';
@@ -52,6 +52,9 @@ export default function App() {
   const [activePage, setActivePage] = useState<'overview'|'sheet'|'admin'|'questions'|'projects'>('overview');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [editingMeta, setEditingMeta] = useState(false);
+  const [inviteName, setInviteName] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [teamBusy, setTeamBusy] = useState(false);
 
   const notify = (kind: 'success'|'error'|'info', text: string) => {
     setToast({kind,text}); window.setTimeout(() => setToast(null), 3600);
@@ -351,20 +354,60 @@ export default function App() {
     else { setProfiles(prev=>prev.map(x=>x.id===p.id?{...x,role}:x)); notify('success',`${p.full_name} is now ${role}.`); }
   };
 
+  const inviteMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase || !isAdmin || !inviteEmail.trim()) return;
+    setTeamBusy(true);
+    try {
+      const { error } = await supabase.functions.invoke('manage-team', {
+        body: { action: 'invite', email: inviteEmail.trim(), full_name: inviteName.trim() || inviteEmail.split('@')[0] }
+      });
+      if (error) throw error;
+      setInviteName('');
+      setInviteEmail('');
+      const { data, error: listError } = await supabase.from('profiles').select('*').order('created_at');
+      if (listError) throw listError;
+      setProfiles((data || []) as Profile[]);
+      notify('success', 'Invitation sent. The new member will appear after their account is created.');
+    } catch (err: any) {
+      notify('error', err.message || 'Could not invite team member. Confirm the manage-team Edge Function is deployed.');
+    } finally {
+      setTeamBusy(false);
+    }
+  };
+
+  const removeMember = async (p: Profile) => {
+    if (!supabase || !isAdmin || p.role !== 'member' || p.id === profile?.id) return;
+    if (!window.confirm(`Remove ${p.full_name} (${p.email}) from RecruitUss? Their sign-in account will be deleted.`)) return;
+    setTeamBusy(true);
+    try {
+      const { error } = await supabase.functions.invoke('manage-team', {
+        body: { action: 'remove', user_id: p.id }
+      });
+      if (error) throw error;
+      setProfiles(prev => prev.filter(x => x.id !== p.id));
+      notify('success', 'Team member removed.');
+    } catch (err: any) {
+      notify('error', err.message || 'Could not remove team member. Confirm the manage-team Edge Function is deployed.');
+    } finally {
+      setTeamBusy(false);
+    }
+  };
+
   const downloadWorkbookSeed = () => {
     const blob=new Blob([JSON.stringify({sheets, rows:allRows},null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a');
-    a.href=url;a.download='j2d-timesheet-export.json';a.click();URL.revokeObjectURL(url);
+    a.href=url;a.download='recruituss-timesheet-export.json';a.click();URL.revokeObjectURL(url);
   };
 
   if (!isSupabaseConfigured) {
     return <SetupScreen />;
   }
-  if (loading) return <div className="loading-screen"><div className="brand-mark">J2D</div><div className="spinner"/><p>Preparing your workspace…</p></div>;
+  if (loading) return <div className="loading-screen"><div className="brand-mark">RU</div><div className="spinner"/><p>Preparing your workspace…</p></div>;
   if (!session) {
     return <div className="auth-shell">
       <div className="auth-art">
-        <div className="auth-brand"><div className="brand-mark">J2D</div><span>DATAOPS</span></div>
+        <div className="auth-brand"><div className="brand-mark">RU</div><span>RECRUITUSS</span></div>
         <div className="auth-copy"><span className="eyebrow"><Sparkles size={14}/> TEAM ENABLEMENT WORKSPACE</span>
           <h1>Turn learning<br/>into <em>readiness.</em></h1>
           <p>One shared workspace for daily execution, technical depth, and interview confidence.</p>
@@ -373,9 +416,9 @@ export default function App() {
       </div>
       <div className="auth-panel">
         <div className="auth-form-wrap">
-          <div className="mobile-brand"><div className="brand-mark">J2D</div><b>DataOps</b></div>
+          <div className="mobile-brand"><div className="brand-mark">RU</div><b>RecruitUss</b></div>
           <span className="eyebrow">WELCOME TO YOUR WORKSPACE</span>
-          <h2>{authMode==='login'?'Sign in to DataOps':'Create your account'}</h2>
+          <h2>{authMode==='login'?'Sign in to RecruitUss':'Create your account'}</h2>
           <p className="muted">{authMode==='login'?'Access your team timesheet and readiness dashboard.':'Join the shared data engineering workspace.'}</p>
           <form onSubmit={authenticate} className="auth-form">
             {authMode==='signup'&&<label>Full name<input value={authName} onChange={e=>setAuthName(e.target.value)} required placeholder="Your full name"/></label>}
@@ -401,7 +444,7 @@ export default function App() {
 
   return <div className="app-shell">
     <aside className={`sidebar ${showMobileNav?'open':''}`}>
-      <div className="sidebar-brand"><div className="brand-mark">J2D</div><div><strong>DataOps</strong><small>TEAM WORKSPACE</small></div><button className="mobile-close icon-btn" onClick={()=>setShowMobileNav(false)}><X size={18}/></button></div>
+      <div className="sidebar-brand"><div className="brand-mark">RU</div><div><strong>RecruitUss</strong><small>TEAM WORKSPACE</small></div><button className="mobile-close icon-btn" onClick={()=>setShowMobileNav(false)}><X size={18}/></button></div>
       <div className="workspace-pill"><span className="live-dot"/><span>Universal DE Timesheet</span><ChevronDown size={14}/></div>
       <nav className="main-nav">
         {navGroups.map(group=><div className="nav-group" key={group.label}><div className="nav-label">{group.label}</div>
@@ -412,13 +455,13 @@ export default function App() {
           })}
         </div>)}
       </nav>
-      <div className="sidebar-footer"><div className="help-card"><div className="help-icon"><CircleHelp size={17}/></div><b>Need a hand?</b><p>Keep notes clear, practical, and interview-ready.</p><span>J2D LEARNING SYSTEM</span></div>
+      <div className="sidebar-footer"><div className="help-card"><div className="help-icon"><CircleHelp size={17}/></div><b>Need a hand?</b><p>Keep notes clear, practical, and interview-ready.</p><span>RECRUITUSS LEARNING SYSTEM</span></div>
         <div className="user-mini"><div className="avatar">{(profile?.full_name||'U').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</div><div className="user-meta"><b>{profile?.full_name||session.user.email}</b><small>{isAdmin?'Administrator':'Team member'}</small></div><button className="icon-btn" title="Sign out" onClick={signOut}><LogOut size={16}/></button></div>
       </div>
     </aside>
     <main className="main-area">
       <header className="topbar">
-        <div className="topbar-left"><button className="mobile-menu icon-btn" onClick={()=>setShowMobileNav(true)}><Menu size={20}/></button><div className="breadcrumbs"><span>J2D DataOps</span><span className="crumb-slash">/</span><b>{activePage==='overview'?'Executive overview':activePage==='admin'?'Admin & access':activePage==='questions'?(isAdmin?'Question Bank & Review':'My Question Practice'):activePage==='projects'?'Project Lab':activeSheet?.name}</b></div></div>
+        <div className="topbar-left"><button className="mobile-menu icon-btn" onClick={()=>setShowMobileNav(true)}><Menu size={20}/></button><div className="breadcrumbs"><span>RU RecruitUss</span><span className="crumb-slash">/</span><b>{activePage==='overview'?'Executive overview':activePage==='admin'?'Admin & access':activePage==='questions'?(isAdmin?'Question Bank & Review':'My Question Practice'):activePage==='projects'?'Project Lab':activeSheet?.name}</b></div></div>
         <div className="topbar-right"><span className="status-chip"><span className="live-dot"/> Shared database</span><button className="icon-btn" title="Refresh" onClick={()=>{loadSheets();if(activeSheet)loadRowsFor(activeSheet,viewType);}}><RefreshCw size={17}/></button><div className="top-avatar">{(profile?.full_name||'U').slice(0,1).toUpperCase()}</div></div>
       </header>
 
@@ -472,7 +515,16 @@ export default function App() {
       {activePage==='admin'&&isAdmin&&<div className="page-content">
         <div className="page-heading"><div><span className="eyebrow">CONTROL CENTER</span><h1>Admin & access</h1><p>Manage workspace roles and audit who has access to the shared workbook.</p></div><span className="admin-badge"><ShieldCheck size={16}/> Administrator access</span></div>
         <div className="metric-grid admin-metrics"><Metric icon={<Users size={18}/>} label="Registered users" value={profiles.length} sub="Accounts in this workspace" color="violet"/><Metric icon={<ShieldCheck size={18}/>} label="Administrators" value={profiles.filter(p=>p.role==='admin').length} sub="Full user-management access" color="green"/><Metric icon={<Database size={18}/>} label="Workbook sheets" value={sheets.length} sub="All source worksheets loaded" color="blue"/><Metric icon={<FileSpreadsheet size={18}/>} label="Source rows" value={sheets.reduce((n,s)=>n+s.raw_row_count,0)} sub="Original Excel row counts" color="amber"/></div>
-        <section className="panel admin-users"><div className="panel-head"><div><h3>Users & permissions</h3><p>Promote a trusted account to admin or return it to member access.</p></div><Users size={19} className="muted-icon"/></div><div className="table-scroll"><table className="data-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Access</th></tr></thead><tbody>{profiles.map(p=><tr key={p.id}><td><div className="person-cell"><div className="avatar">{p.full_name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</div><b>{p.full_name}</b></div></td><td>{p.email}</td><td><span className={`role-pill ${p.role}`}>{p.role}</span></td><td><select className="role-select" value={p.role} disabled={p.id===profile?.id} onChange={e=>setRole(p,e.target.value as any)}><option value="member">Member</option><option value="admin">Admin</option></select>{p.id===profile?.id&&<small className="muted"> Current account</small>}</td></tr>)}</tbody></table></div></section>
+        <section className="panel team-invite-panel">
+          <div className="panel-head"><div><h3>Add a team member</h3><p>Send an email invitation to join RecruitUss.</p></div><UserPlus size={19} className="muted-icon"/></div>
+          <form className="team-invite-form" onSubmit={inviteMember}>
+            <label>Full name<input value={inviteName} onChange={e=>setInviteName(e.target.value)} placeholder="Team member name"/></label>
+            <label>Email address<input type="email" required value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="member@company.com"/></label>
+            <button className="btn primary" disabled={teamBusy}><UserPlus size={15}/>{teamBusy?'Please wait…':'Send invitation'}</button>
+          </form>
+          <p className="team-invite-note">Invitations and removals are processed securely by the Supabase manage-team Edge Function.</p>
+        </section>
+        <section className="panel admin-users"><div className="panel-head"><div><h3>Users & permissions</h3><p>Manage roles or remove a team member. Your own account cannot be removed here.</p></div><Users size={19} className="muted-icon"/></div><div className="table-scroll"><table className="data-table"><thead><tr><th>User</th><th>Email</th><th>Role</th><th>Access</th></tr></thead><tbody>{profiles.map(p=><tr key={p.id}><td><div className="person-cell"><div className="avatar">{p.full_name.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</div><b>{p.full_name}</b></div></td><td>{p.email}</td><td><span className={`role-pill ${p.role}`}>{p.role}</span></td><td><div className="team-access-actions"><select className="role-select" value={p.role} disabled={p.id===profile?.id || teamBusy} onChange={e=>setRole(p,e.target.value as any)}><option value="member">Member</option><option value="admin">Admin</option></select>{p.id===profile?.id&&<small className="muted">Current account</small>}{p.role==='member'&&p.id!==profile?.id&&<button className="btn secondary remove-member-btn" type="button" disabled={teamBusy} onClick={()=>removeMember(p)}><UserMinus size={14}/>Remove</button>}</div></td></tr>)}</tbody></table></div></section>
         <section className="panel security-panel"><div className="security-icon"><LockKeyhole size={20}/></div><div><h3>Security model</h3><p>Supabase Auth protects sign-in. Database row-level security restricts profile visibility and admin-only role management. All signed-in team members can read and edit shared workbook records; only admins can delete rows or change user roles.</p></div></section>
       </div>}
     </main>
@@ -490,5 +542,5 @@ function isStatusColumn(c:string){return ['Status','Peer Validation','Interview-
 function statusClass(s:string){const v=s.toLowerCase();if(v.includes('completed')||v==='yes'||v==='passed')return 'good';if(v.includes('progress')||v.includes('pending')||v.includes('tested'))return 'warn';if(v.includes('blocked')||v.includes('no')||v.includes('review'))return 'bad';return 'neutral';}
 function isLongField(c:string,v:any){return String(c).length>24||String(v||'').length>100||/understanding|objective|completed today|blocker|feedback|notes|why|troubleshooting|gap|action|scenario|question/i.test(c);}
 function SetupScreen(){
-  return <div className="setup-shell"><div className="setup-card"><div className="brand-mark">J2D</div><span className="eyebrow">DEPLOYMENT SETUP</span><h1>Connect your shared workspace</h1><p>The website UI is ready, but it needs your Supabase project credentials to enable authentication and shared database access.</p><ol><li>Create a Supabase project.</li><li>Copy <code>.env.example</code> to <code>.env</code> and fill in your project URL and anon key.</li><li>Run <code>supabase/schema.sql</code> in the Supabase SQL Editor.</li><li>Run <code>npm run seed</code> with the service-role key set in your local environment.</li><li>Start the app with <code>npm install</code> and <code>npm run dev</code>.</li></ol><div className="setup-warning"><LockKeyhole size={16}/><span>Never put the Supabase service-role key in a VITE_ environment variable or browser code.</span></div></div></div>;
+  return <div className="setup-shell"><div className="setup-card"><div className="brand-mark">RU</div><span className="eyebrow">DEPLOYMENT SETUP</span><h1>Connect your shared workspace</h1><p>The website UI is ready, but it needs your Supabase project credentials to enable authentication and shared database access.</p><ol><li>Create a Supabase project.</li><li>Copy <code>.env.example</code> to <code>.env</code> and fill in your project URL and anon key.</li><li>Run <code>supabase/schema.sql</code> in the Supabase SQL Editor.</li><li>Run <code>npm run seed</code> with the service-role key set in your local environment.</li><li>Start the app with <code>npm install</code> and <code>npm run dev</code>.</li></ol><div className="setup-warning"><LockKeyhole size={16}/><span>Never put the Supabase service-role key in a VITE_ environment variable or browser code.</span></div></div></div>;
 }
