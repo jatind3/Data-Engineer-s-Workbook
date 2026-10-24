@@ -393,8 +393,9 @@ export default function App() {
 
   const navGroups = [
     {label:'WORKSPACE', items:[{page:'overview',name:'Executive overview',icon:LayoutDashboard}]},
+    // Keep the member learning tools near the top so they are visible without scrolling past all workbook tabs.
+    {label:'LEARNING & PRACTICE',items:[{page:'questions',name:isAdmin?'Question Bank & Review':'Answer Practice',icon:BookOpen},{page:'projects',name:'Project Lab',icon:Layers3}]},
     {label:'WORKBOOK', items:sheets.map(s=>({page:s.slug,name:s.name,icon:icons[s.slug]||FileSpreadsheet,sheet:s}))},
-    {label:'LEARNING',items:[{page:'questions',name:isAdmin?'Question Bank & Review':'My Question Practice',icon:BookOpen},{page:'projects',name:'Project Lab',icon:Layers3}]},
     ...(isAdmin?[{label:'ADMINISTRATION',items:[{page:'admin',name:'Admin & access',icon:Users}]}]:[])
   ];
 
