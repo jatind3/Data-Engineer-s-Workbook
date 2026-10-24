@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import QuestionBank from './QuestionBank';
+import LearningProjects from './LearningProjects';
 
 type Sheet = {
   id: string; slug: string; name: string; description: string; sort_order: number;
@@ -48,7 +49,7 @@ export default function App() {
   const [modalRow, setModalRow] = useState<Row|null>(null);
   const [modalData, setModalData] = useState<Record<string, any>>({});
   const [showMobileNav, setShowMobileNav] = useState(false);
-  const [activePage, setActivePage] = useState<'overview'|'sheet'|'admin'|'questions'>('overview');
+  const [activePage, setActivePage] = useState<'overview'|'sheet'|'admin'|'questions'|'projects'>('overview');
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [editingMeta, setEditingMeta] = useState(false);
 
@@ -393,7 +394,7 @@ export default function App() {
   const navGroups = [
     {label:'WORKSPACE', items:[{page:'overview',name:'Executive overview',icon:LayoutDashboard}]},
     {label:'WORKBOOK', items:sheets.map(s=>({page:s.slug,name:s.name,icon:icons[s.slug]||FileSpreadsheet,sheet:s}))},
-    {label:'LEARNING',items:[{page:'questions',name:'Question Bank & Answers',icon:BookOpen}]},
+    {label:'LEARNING',items:[{page:'questions',name:isAdmin?'Question Bank & Review':'My Question Practice',icon:BookOpen},{page:'projects',name:'Project Lab',icon:Layers3}]},
     ...(isAdmin?[{label:'ADMINISTRATION',items:[{page:'admin',name:'Admin & access',icon:Users}]}]:[])
   ];
 
@@ -403,8 +404,8 @@ export default function App() {
       <div className="workspace-pill"><span className="live-dot"/><span>Universal DE Timesheet</span><ChevronDown size={14}/></div>
       <nav className="main-nav">
         {navGroups.map(group=><div className="nav-group" key={group.label}><div className="nav-label">{group.label}</div>
-          {group.items.map((item:any)=>{const Icon=item.icon;const active=item.page==='overview'?activePage==='overview':item.page==='admin'?activePage==='admin':item.page==='questions'?activePage==='questions':activePage==='sheet'&&activeSheet?.slug===item.page;
-            return <button key={item.page} className={`nav-item ${active?'active':''}`} onClick={()=>{if(item.page==='overview'){setActivePage('overview');}else if(item.page==='admin'){setActivePage('admin');}else if(item.page==='questions'){setActivePage('questions');}else{setActivePage('sheet');setActiveSheet(item.sheet);setViewType('table');setQuery('');}setShowMobileNav(false);}}>
+          {group.items.map((item:any)=>{const Icon=item.icon;const active=item.page==='overview'?activePage==='overview':item.page==='admin'?activePage==='admin':item.page==='questions'?activePage==='questions':item.page==='projects'?activePage==='projects':activePage==='sheet'&&activeSheet?.slug===item.page;
+            return <button key={item.page} className={`nav-item ${active?'active':''}`} onClick={()=>{if(item.page==='overview'){setActivePage('overview');}else if(item.page==='admin'){setActivePage('admin');}else if(item.page==='questions'){setActivePage('questions');}else if(item.page==='projects'){setActivePage('projects');}else{setActivePage('sheet');setActiveSheet(item.sheet);setViewType('table');setQuery('');}setShowMobileNav(false);}}>
               <Icon size={17}/><span>{item.name}</span>{item.page==='question-scenario-tracker'&&<span className="nav-count">{overviewMetrics.totalQuestions}</span>}
             </button>
           })}
@@ -416,7 +417,7 @@ export default function App() {
     </aside>
     <main className="main-area">
       <header className="topbar">
-        <div className="topbar-left"><button className="mobile-menu icon-btn" onClick={()=>setShowMobileNav(true)}><Menu size={20}/></button><div className="breadcrumbs"><span>J2D DataOps</span><span className="crumb-slash">/</span><b>{activePage==='overview'?'Executive overview':activePage==='admin'?'Admin & access':activePage==='questions'?'Question Bank & Answers':activeSheet?.name}</b></div></div>
+        <div className="topbar-left"><button className="mobile-menu icon-btn" onClick={()=>setShowMobileNav(true)}><Menu size={20}/></button><div className="breadcrumbs"><span>J2D DataOps</span><span className="crumb-slash">/</span><b>{activePage==='overview'?'Executive overview':activePage==='admin'?'Admin & access':activePage==='questions'?(isAdmin?'Question Bank & Review':'My Question Practice'):activePage==='projects'?'Project Lab':activeSheet?.name}</b></div></div>
         <div className="topbar-right"><span className="status-chip"><span className="live-dot"/> Shared database</span><button className="icon-btn" title="Refresh" onClick={()=>{loadSheets();if(activeSheet)loadRowsFor(activeSheet,viewType);}}><RefreshCw size={17}/></button><div className="top-avatar">{(profile?.full_name||'U').slice(0,1).toUpperCase()}</div></div>
       </header>
 
@@ -458,6 +459,7 @@ export default function App() {
       </div>}
 
       {activePage==='questions'&&profile&&<QuestionBank profile={profile}/>}
+      {activePage==='projects'&&profile&&<LearningProjects profile={profile}/>}
 
       {activePage==='admin'&&isAdmin&&<div className="page-content">
         <div className="page-heading"><div><span className="eyebrow">CONTROL CENTER</span><h1>Admin & access</h1><p>Manage workspace roles and audit who has access to the shared workbook.</p></div><span className="admin-badge"><ShieldCheck size={16}/> Administrator access</span></div>
