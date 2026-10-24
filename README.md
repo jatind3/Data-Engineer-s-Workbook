@@ -1,4 +1,4 @@
-# J2D DataOps — Universal Data Engineering Timesheet
+# RecruitUss — Universal Data Engineering Timesheet
 
 A React + Vite + Supabase web application based on `Universal_Data_Engineering_Timesheet_v3_TechLead.xlsx`.
 
