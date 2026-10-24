@@ -381,6 +381,7 @@ export default function App() {
             <label>Password<input type="password" minLength={8} value={authPassword} onChange={e=>setAuthPassword(e.target.value)} required placeholder="At least 8 characters"/></label>
             <button className="btn primary wide" disabled={busy}>{busy?'Please wait…':authMode==='login'?'Sign in':'Create account'} <ArrowUpRight size={16}/></button>
           </form>
+          {toast&&<div className={`toast ${toast.kind}`} role="status" aria-live="polite"><span>{toast.kind==='success'?<Check size={16}/>:toast.kind==='error'?<CircleAlert size={16}/>:<Activity size={16}/>}</span>{toast.text}<button type="button" onClick={()=>setToast(null)} aria-label="Dismiss message"><X size={14}/></button></div>}
           <p className="auth-switch">{authMode==='login'?'New to the workspace?':'Already have an account?'} <button className="text-btn" onClick={()=>setAuthMode(authMode==='login'?'signup':'login')}>{authMode==='login'?'Create an account':'Sign in'}</button></p>
           <div className="security-note"><LockKeyhole size={15}/> Secured by Supabase Authentication</div>
         </div>
