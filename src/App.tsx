@@ -425,6 +425,13 @@ export default function App() {
       {activePage==='overview'&&<div className="page-content">
         <div className="page-heading"><div><span className="eyebrow">TEAM PERFORMANCE / 2026</span><h1>Executive overview</h1><p>One clear view of team execution, technical competency, and interview readiness.</p></div><button className="btn secondary" onClick={downloadWorkbookSeed}><ArrowDownToLine size={16}/> Export workspace JSON</button></div>
         <div className="welcome-banner"><div className="welcome-pattern"><span/><span/><span/><span/></div><div className="welcome-copy"><span className="banner-eyebrow"><Sparkles size={14}/> UNIVERSAL DATA ENGINEERING TRACKER</span><h2>Build skills. Prove understanding.<br/><em>Become interview-ready.</em></h2><p>SQL, PySpark, Databricks and ADF — tracked in one shared place.</p></div><div className="banner-stat"><span>TRACKER COMPLETION</span><strong>{overviewMetrics.completion}%</strong><div className="progress-track"><span style={{width:`${overviewMetrics.completion}%`}}/></div><small>{overviewMetrics.completed} of {overviewMetrics.totalQuestions} scenarios completed</small></div></div>
+        <section className="panel" style={{padding:16,marginBottom:18,display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+          <div><span className="eyebrow">TEAM LEARNING</span><h3 style={{margin:'6px 0',fontSize:15}}>Answer questions, then build projects</h3><p style={{margin:0,fontSize:11,color:'#7c879a'}}>Write your own technical answers, save drafts, submit for review, and track hands-on project milestones.</p></div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            <button className="btn primary" onClick={()=>setActivePage('questions')}><BookOpen size={15}/> Open Answer Practice</button>
+            <button className="btn secondary" onClick={()=>setActivePage('projects')}><Layers3 size={15}/> Open Project Lab</button>
+          </div>
+        </section>
         <div className="metric-grid">
           <Metric icon={<ClipboardCheck size={18}/>} label="Scenarios completed" value={`${overviewMetrics.completed}`} sub={`of ${overviewMetrics.totalQuestions} tracked questions`} color="violet"/>
           <Metric icon={<Activity size={18}/>} label="In progress" value={`${overviewMetrics.inProgress}`} sub="Questions being worked on" color="blue"/>
